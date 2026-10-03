@@ -1,0 +1,5 @@
+sample_id,replicate,temperature_c,note
+A,2,99.85,control
+A,1,100.04,control
+B,1,82.00,revised
+C,1,70.00,new

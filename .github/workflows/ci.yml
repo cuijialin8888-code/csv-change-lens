@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Python ${{ matrix.python }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ['3.10', '3.14']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install package
+        run: python -m pip install .
+      - name: Test semantics and safety boundaries
+        run: python -m unittest discover -s tests -v
+      - name: Check CLI
+        run: python -m csv_change_lens --help
+      - name: Compile source
+        run: python -m compileall -q src tests
+
+  package:
+    name: Distribution acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.14'
+      - name: Install build and lint tools
+        run: python -m pip install build ruff
+      - name: Lint
+        run: python -m ruff check src tests
+      - name: Build distributions
+        run: python -m build
+      - name: Install and test built wheel
+        run: |
+          python -m pip install --no-index --no-deps dist/*.whl
+          python -m unittest discover -s tests -v
+          csv-change-lens --version
+      - name: Check source distribution contents
+        run: |
+          python -c "import tarfile,pathlib; names=tarfile.open(next(pathlib.Path('dist').glob('*.tar.gz'))).getnames(); assert any(n.endswith('/tests/test_comparison.py') for n in names); assert any(n.endswith('/examples/before.csv') for n in names)"
