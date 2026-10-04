@@ -25,8 +25,10 @@ Numerical equality uses:
 abs(a-b) <= max(abs_tol, rel_tol * max(abs(a), abs(b)))
 ```
 
-Decimal arithmetic uses a local precision of 5000 digits, enough for exact operations
-within the supported operand bounds. It does not change the caller's global context.
+Decimal arithmetic uses an independent local context with 5000 digits of precision
+and exponent limits of -999999 to 999999, enough for exact operations within the
+supported operand bounds. The caller's precision, exponent limits and signal traps
+do not affect comparison results; its context settings and flags remain unchanged.
 Relative tolerance is a fraction, symmetric between inputs; zero has no relative
 allowance when both values are zero. No binary floating-point conversion occurs.
 
