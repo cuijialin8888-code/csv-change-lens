@@ -8,7 +8,7 @@ import os
 import re
 import stat
 from dataclasses import dataclass
-from decimal import Decimal, InvalidOperation, localcontext
+from decimal import Context, Decimal, InvalidOperation, localcontext
 from pathlib import Path
 
 MAX_BYTES = 25 * 1024 * 1024
@@ -62,8 +62,8 @@ def tolerance(text: str) -> Decimal:
 def numerically_equal(a: Decimal, b: Decimal, absolute: Decimal, relative: Decimal) -> bool:
     # Allowed operands have <=256 digits and |exponent|<=1000. This precision
     # preserves subtraction and tolerance multiplication without binary floats.
-    with localcontext() as context:
-        context.prec = 5000
+    # Do not inherit a caller's restricted exponent range or signal traps.
+    with localcontext(Context(prec=5000, Emin=-999999, Emax=999999, clamp=0)):
         return abs(a - b) <= max(absolute, relative * max(abs(a), abs(b)))
 
 

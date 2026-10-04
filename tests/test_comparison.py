@@ -4,6 +4,7 @@ import io
 import json
 import tempfile
 import unittest
+from decimal import ROUND_DOWN, Subnormal, localcontext
 from pathlib import Path
 from unittest.mock import patch
 
@@ -82,6 +83,32 @@ class ComparisonTests(unittest.TestCase):
     def test_large_precision_does_not_round_difference_away(self):
         self.files("id,x\n1,1000000000000000000000000000000\n", "id,x\n1,1000000000000000000000000000001\n")
         self.assertEqual(self.compare(numeric=("x",))["status"], "different")
+
+    def test_numeric_comparison_is_independent_of_caller_decimal_context(self):
+        cases = [
+            ("1e1000", "2e1000", "1e1000", "0", "equal"),
+            ("1e1000", "2e1000", "0", "0.5", "equal"),
+            ("1e-1000", "2e-1000", "0", "0", "different"),
+            ("1e-1000", "2e-1000", "1e-1000", "0", "equal"),
+        ]
+        for before, after, absolute, relative, status in cases:
+            with self.subTest(before=before, absolute=absolute, relative=relative):
+                self.files(f"id,x\n1,{before}\n", f"id,x\n1,{after}\n")
+                expected = self.compare(numeric=("x",), abs_tol=absolute, rel_tol=relative)
+                with localcontext() as caller:
+                    caller.prec = 2
+                    caller.Emax = 2
+                    caller.Emin = -2
+                    caller.rounding = ROUND_DOWN
+                    caller.clamp = 1
+                    caller.clear_flags()
+                    caller.traps[Subnormal] = True
+                    original = caller.copy()
+                    actual = self.compare(numeric=("x",), abs_tol=absolute, rel_tol=relative)
+                    self.assertEqual(actual, expected)
+                    self.assertEqual(actual["status"], status)
+                    for attribute in ("prec", "Emax", "Emin", "rounding", "clamp", "flags", "traps"):
+                        self.assertEqual(getattr(caller, attribute), getattr(original, attribute))
 
     def test_invalid_numeric_in_added_removed_or_equal_rows(self):
         for before, after in [("id,x\n", "id,x\n1,NaN\n"),
