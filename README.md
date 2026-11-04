@@ -45,7 +45,7 @@ Or download the wheel from [GitHub Releases](https://github.com/cuijialin8888-co
 and install it offline:
 
 ```console
-python -m pip install --no-index --no-deps csv_change_lens-0.1.0-py3-none-any.whl
+python -m pip install --no-index --no-deps csv_change_lens-0.1.1-py3-none-any.whl
 ```
 
 This project is not currently published on PyPI. A wheel contains the CLI and library;
@@ -114,6 +114,11 @@ report = compare_files(
 assert report["schema_version"] == 1
 ```
 
+Column selections accept non-string iterables of exact header names (for a single
+column, use `keys=("id",)` or `keys=["id"]`). `show_values` must be a boolean;
+strings such as `"false"` are rejected. Row and detail limits require integers,
+excluding booleans. Invalid policies are rejected before either input is read.
+
 `InputError` exposes a stable `code` and a message that omits input paths and cell
 values. [Report and error definitions](docs/semantics.md) describe the v1 contract.
 
@@ -142,4 +147,5 @@ CI runs Python 3.10 and 3.14 on Windows, Linux, and macOS. A separate job builds
 wheel and source distribution, runs tests against the installed wheel, and checks
 that source archives include the tests and examples. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-MIT licensed. Version 0.1.0 is an initial release; feedback with synthetic CSVs is welcome.
+MIT licensed. Version 0.1.1 hardens input validation and value disclosure;
+feedback with synthetic CSVs is welcome.

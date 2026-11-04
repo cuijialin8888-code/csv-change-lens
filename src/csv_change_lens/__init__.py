@@ -2,5 +2,5 @@
 
 from .core import InputError, compare_files
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __all__ = ["InputError", "compare_files", "__version__"]

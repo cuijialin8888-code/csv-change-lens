@@ -10,7 +10,9 @@ Default reports omit cell values, key values and paths, including error messages
 They expose column names, comparison policy, record locations and counts. This
 reduces accidental log disclosure; it is not encryption or anonymization. If your
 headers themselves contain sensitive data, do not share the report. `--show-values`
-explicitly includes raw values; redirect and distribute such output with care.
+explicitly includes raw values and must be spelled in full; redirect and distribute
+such output with care. The library requires a boolean `show_values` argument and
+rejects strings such as `"false"` before reading inputs.
 JSON quoting prevents terminal control characters from being emitted directly.
 Markdown uses indented code blocks so input backticks cannot terminate a code fence.
 CSV formulas are treated as text and are never executed by this tool.

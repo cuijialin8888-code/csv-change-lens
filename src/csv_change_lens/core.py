@@ -7,6 +7,7 @@ import io
 import os
 import re
 import stat
+from collections.abc import Iterable
 from dataclasses import dataclass
 from decimal import Context, Decimal, InvalidOperation, localcontext
 from pathlib import Path
@@ -67,13 +68,20 @@ def numerically_equal(a: Decimal, b: Decimal, absolute: Decimal, relative: Decim
         return abs(a - b) <= max(absolute, relative * max(abs(a), abs(b)))
 
 
-def _names(names: tuple[str, ...], *, required: bool = False) -> None:
+def _names(names: Iterable[str], *, required: bool = False) -> tuple[str, ...]:
+    if isinstance(names, (str, bytes)):
+        raise InputError("CL_CONFIG", "column selections must be an iterable of header names")
+    try:
+        names = tuple(names)
+    except TypeError:
+        raise InputError("CL_CONFIG", "column selections must be an iterable of header names") from None
     if required and not names:
         raise InputError("CL_CONFIG", "at least one key column is required")
     if any(not isinstance(name, str) or not name or name != name.strip() for name in names):
         raise InputError("CL_CONFIG", "column selections must be nonempty exact header names")
     if len(set(names)) != len(names):
         raise InputError("CL_CONFIG", "duplicate column selections are not allowed")
+    return names
 
 
 def _read_table(path: str | Path, side: str, keys: tuple[str, ...],
@@ -92,7 +100,7 @@ def _read_table(path: str | Path, side: str, keys: tuple[str, ...],
         if len(payload) > MAX_BYTES:
             raise InputError("CL_LIMIT", f"{side}: file exceeds the 25 MiB limit")
         decoded = payload.decode(encoding)
-    except (OSError, ValueError, LookupError) as exc:
+    except (OSError, ValueError, LookupError, TypeError) as exc:
         if isinstance(exc, InputError):
             raise
         raise InputError("CL_READ", f"{side}: cannot read or decode input") from None
@@ -132,12 +140,14 @@ def _read_table(path: str | Path, side: str, keys: tuple[str, ...],
                     raise InputError("CL_NUMERIC", f"{side}: record {record} has an invalid numeric cell") from None
             rows[key] = Row(record, values)
         return Table(header, rows)
-    except csv.Error:
+    except csv.Error as exc:
+        if str(exc).startswith("field larger than field limit"):
+            raise InputError("CL_LIMIT", f"{side}: CSV parser field size limit exceeded") from None
         raise InputError("CL_CSV", f"{side}: malformed CSV near physical line {reader.line_num}") from None
 
 
-def compare_files(before: str | Path, after: str | Path, *, keys: tuple[str, ...],
-                  numeric: tuple[str, ...] = (), ignored: tuple[str, ...] = (),
+def compare_files(before: str | Path, after: str | Path, *, keys: Iterable[str],
+                  numeric: Iterable[str] = (), ignored: Iterable[str] = (),
                   abs_tol: str = "0", rel_tol: str = "0", delimiter: str = ",",
                   encoding: str = "utf-8-sig", show_values: bool = False,
                   max_details: int = 100, max_rows: int = MAX_ROWS) -> dict:
@@ -146,19 +156,24 @@ def compare_files(before: str | Path, after: str | Path, *, keys: tuple[str, ...
     Cell and key values are omitted by default. Column names, logical record
     numbers and counts remain visible. Rows and columns may be reordered.
     """
-    keys, numeric, ignored = tuple(keys), tuple(numeric), tuple(ignored)
-    _names(keys, required=True)
-    _names(numeric)
-    _names(ignored)
+    keys = _names(keys, required=True)
+    numeric = _names(numeric)
+    ignored = _names(ignored)
+    if not isinstance(show_values, bool):
+        raise InputError("CL_CONFIG", "show-values must be a boolean")
     if set(keys) & (set(numeric) | set(ignored)) or set(numeric) & set(ignored):
         raise InputError("CL_CONFIG", "key, numeric and ignored column selections must be disjoint")
     if not isinstance(delimiter, str) or len(delimiter) != 1 or delimiter in '\r\n\x00"':
         raise InputError("CL_CONFIG", "delimiter must be one character other than newline, NUL or quote")
     if not isinstance(encoding, str) or not encoding:
         raise InputError("CL_CONFIG", "an explicit text encoding is required")
-    if not isinstance(max_details, int) or not 0 <= max_details <= MAX_DETAILS:
+    try:
+        b"".decode(encoding)
+    except (LookupError, UnicodeError):
+        raise InputError("CL_CONFIG", "encoding must name a supported text codec") from None
+    if isinstance(max_details, bool) or not isinstance(max_details, int) or not 0 <= max_details <= MAX_DETAILS:
         raise InputError("CL_CONFIG", "max-details must be between 0 and 10000")
-    if not isinstance(max_rows, int) or not 1 <= max_rows <= MAX_ROWS:
+    if isinstance(max_rows, bool) or not isinstance(max_rows, int) or not 1 <= max_rows <= MAX_ROWS:
         raise InputError("CL_CONFIG", "max-rows must be between 1 and 100000")
     absolute, relative = tolerance(abs_tol), tolerance(rel_tol)
     if (absolute or relative) and not numeric:
