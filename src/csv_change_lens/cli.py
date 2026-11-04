@@ -17,7 +17,9 @@ class Parser(argparse.ArgumentParser):
 
 
 def _parser() -> Parser:
-    parser = Parser(description="Offline keyed CSV comparisons; cell values hidden by default.")
+    # Require full option names so abbreviations cannot enable value disclosure.
+    parser = Parser(description="Offline keyed CSV comparisons; cell values hidden by default.",
+                    allow_abbrev=False)
     parser.add_argument("before", help="baseline CSV file")
     parser.add_argument("after", help="candidate CSV file")
     parser.add_argument("--key", action="append", required=True, help="exact key header; repeat for composite keys")

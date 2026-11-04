@@ -27,6 +27,8 @@ Values included: false
 
 Detail events identify the CSV record and changed column. Key and cell values are omitted.
 Add `--show-values` when you intentionally want them in the report.
+Long options must be spelled in full: abbreviations such as `--show` are rejected
+with exit code 2 before either input is read.
 
 ## Install
 

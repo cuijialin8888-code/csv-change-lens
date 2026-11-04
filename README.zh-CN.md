@@ -53,6 +53,8 @@ csv-change-lens examples/before.csv examples/after.csv --key sample_id --key rep
 | `--max-details 20` | 最多显示 20 个变化事件，不影响完整计数和退出码 |
 
 退出码：0 表示所选规则下相同；1 表示发现差异；2 表示输入或参数无效。
+所有长参数都必须完整拼写；显示数据值须使用完整的 `--show-values`。
+`--show` 等缩写会在读取输入文件前被拒绝，退出码为 2。
 
 ## 比较规则和边界
 
