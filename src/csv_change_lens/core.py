@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import codecs
 import csv
 import io
 import os
@@ -168,9 +169,11 @@ def compare_files(before: str | Path, after: str | Path, *, keys: Iterable[str],
     if not isinstance(encoding, str) or not encoding:
         raise InputError("CL_CONFIG", "an explicit text encoding is required")
     try:
-        b"".decode(encoding)
-    except (LookupError, UnicodeError):
+        decoded_empty = codecs.decode(b"", encoding)
+    except (LookupError, UnicodeError, TypeError):
         raise InputError("CL_CONFIG", "encoding must name a supported text codec") from None
+    if not isinstance(decoded_empty, str):
+        raise InputError("CL_CONFIG", "encoding must name a supported text codec")
     if isinstance(max_details, bool) or not isinstance(max_details, int) or not 0 <= max_details <= MAX_DETAILS:
         raise InputError("CL_CONFIG", "max-details must be between 0 and 10000")
     if isinstance(max_rows, bool) or not isinstance(max_rows, int) or not 1 <= max_rows <= MAX_ROWS:

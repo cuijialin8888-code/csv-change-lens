@@ -6,7 +6,7 @@ import io
 import json
 import tempfile
 import unittest
-from importlib.metadata import version
+from importlib.metadata import distribution, version
 from pathlib import Path
 from unittest.mock import patch
 
@@ -62,7 +62,7 @@ class ApiBoundaryTests(unittest.TestCase):
         self.assertEqual(report["summary"]["numeric_equivalent_cells"], 1)
 
     def test_encoding_is_validated_before_input_reads(self):
-        for encoding in ("SECRET_CODEC", "base64_codec", "hex_codec", "undefined"):
+        for encoding in ("SECRET_CODEC", "base64_codec", "hex_codec", "rot_13", "undefined"):
             with self.subTest(encoding=encoding):
                 self.invalid_config(encoding=encoding)
 
@@ -111,6 +111,15 @@ class ApiBoundaryTests(unittest.TestCase):
 
 
 class DistributionTests(unittest.TestCase):
+    def test_installed_distribution_includes_declared_mit_license(self):
+        installed = distribution("csv-change-lens")
+        self.assertEqual(installed.metadata["License-Expression"], "MIT")
+        self.assertEqual(installed.metadata.get_all("License-File"), ["LICENSE"])
+        licenses = [path for path in installed.files
+                    if str(path).endswith(".dist-info/licenses/LICENSE")]
+        self.assertEqual(len(licenses), 1)
+        self.assertTrue(installed.locate_file(licenses[0]).is_file())
+
     def test_installed_metadata_library_and_cli_versions_agree(self):
         self.assertEqual(version("csv-change-lens"), __version__)
         stdout = io.StringIO()

@@ -9,6 +9,8 @@ csv-change-lens 0.1.1: input-validation and privacy-boundary maintenance.
   as resource errors without changing the caller's CSV parser settings.
 - Keep decimal comparisons independent of the caller's decimal context.
 - Extend cross-platform regression coverage and check installed package/CLI versions.
+- Modernize license metadata and verify the license is included in the installed wheel.
+  Source builds require setuptools 77+; installed wheels retain zero runtime dependencies.
 
 Compatibility: replace abbreviated CLI options with complete names. Library callers
 must use non-string iterables for column selections, boolean value opt-in and integer

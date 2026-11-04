@@ -14,6 +14,8 @@
 - Classify CSV parser field-size failures as `CL_LIMIT` without changing caller limits.
 - Expand configuration, privacy, resource-boundary and installed-version tests.
 - Refresh English/Chinese usage notes and offline installation instructions.
+- Replace deprecated license metadata with the SPDX expression and an explicit
+  license file; require setuptools 77+ for builds and verify the installed license.
 
 ## 0.1.0 — 2026-10-03
 
