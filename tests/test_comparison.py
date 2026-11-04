@@ -271,6 +271,43 @@ class ComparisonTests(unittest.TestCase):
         self.files("id,x,y\n1,a,b\n", "id,x,y\n1,c,d\n")
         self.assertEqual(render(self.compare(), "json"), render(self.compare(), "json"))
 
+    def test_cli_show_values_requires_complete_option(self):
+        option = "--show-values"
+        for fmt in ("text", "json", "markdown"):
+            for length in range(3, len(option)):
+                prefix = option[:length]
+                with self.subTest(format=fmt, option=prefix):
+                    stdout, stderr = io.StringIO(), io.StringIO()
+                    argv = ["SECRET_BEFORE.csv", "SECRET_AFTER.csv", "--key", "id",
+                            "--format", fmt, prefix]
+                    with patch("csv_change_lens.cli.compare_files") as compare:
+                        with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                            code = main(argv)
+                        compare.assert_not_called()
+                    self.assertEqual(code, 2)
+                    self.assertEqual(stdout.getvalue(), "")
+                    self.assertEqual(json.loads(stderr.getvalue())["code"], "CL_ARGUMENT")
+                    self.assertNotIn("SECRET", stderr.getvalue())
+
+    def test_cli_values_hidden_by_default_and_shown_with_full_option(self):
+        self.files("id,x\nSECRET_KEY,SECRET_OLD\n", "id,x\nSECRET_KEY,SECRET_NEW\n")
+        for fmt in ("text", "json", "markdown"):
+            for show_values in (False, True):
+                with self.subTest(format=fmt, show_values=show_values):
+                    stdout, stderr = io.StringIO(), io.StringIO()
+                    argv = [str(self.before), str(self.after), "--key", "id", "--format", fmt]
+                    if show_values:
+                        argv.append("--show-values")
+                    with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                        code = main(argv)
+                    self.assertEqual(code, 1)
+                    self.assertEqual(stderr.getvalue(), "")
+                    for secret in ("SECRET_KEY", "SECRET_OLD", "SECRET_NEW"):
+                        self.assertEqual(secret in stdout.getvalue(), show_values)
+                    if fmt == "json":
+                        self.assertEqual(json.loads(stdout.getvalue())["values_included"],
+                                         show_values)
+
     def test_cli_exit_codes_and_json(self):
         self.files("id,x\n1,a\n", "id,x\n1,b\n")
         stdout, stderr = io.StringIO(), io.StringIO()
