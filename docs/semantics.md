@@ -11,6 +11,11 @@ characters are rejected. Header-only files are valid empty tables.
 All key, numeric and ignored selections must be distinct and present in both headers.
 Keys are exact tuples of strings; an empty or all-whitespace component is invalid.
 Duplicate keys invalidate the entire comparison, even when all cell values match.
+Library selections must be non-string iterables of exact header names. Bare strings,
+bytes and noniterable selections are configuration errors. `show_values` accepts only
+`True` or `False`; row/detail limits accept integers excluding booleans. Unsupported
+or non-text encodings are configuration errors. These checks precede file reads.
+The CLI requires complete long-option names, including `--show-values`.
 
 Numeric cells and tolerance strings accept only signed ASCII decimal/scientific
 notation, at most 256 characters with a decimal tuple exponent in [-1000, 1000].
@@ -68,6 +73,9 @@ The default detail cap is 100, with a supported range of 0..10000. It affects em
 events only. Each file is bounded by 25 MiB, 100000 records, 256 columns and 16384
 characters per cell. `max_rows` may lower the row cap. Inputs are loaded into memory;
 limits constrain input size, not a guaranteed maximum resident memory allocation.
+A caller's lower `csv.field_size_limit()` also applies and is never changed by the
+library. CSV parser field-size failures are reported as `CL_LIMIT`, including when
+a field exceeds the parser limit before the project's own cell validation.
 
 ## Errors
 

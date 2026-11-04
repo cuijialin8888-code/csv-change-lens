@@ -23,7 +23,7 @@ python -m pip install .
 下载 wheel 安装包，然后离线安装：
 
 ```console
-python -m pip install --no-index --no-deps csv_change_lens-0.1.0-py3-none-any.whl
+python -m pip install --no-index --no-deps csv_change_lens-0.1.1-py3-none-any.whl
 ```
 
 尚未发布到 PyPI。程序运行时没有第三方依赖。
@@ -55,6 +55,11 @@ csv-change-lens examples/before.csv examples/after.csv --key sample_id --key rep
 退出码：0 表示所选规则下相同；1 表示发现差异；2 表示输入或参数无效。
 所有长参数都必须完整拼写；显示数据值须使用完整的 `--show-values`。
 `--show` 等缩写会在读取输入文件前被拒绝，退出码为 2。
+
+作为 Python 库调用时，列名须以元组、列表等非字符串可迭代对象传入；
+单列示例为 `keys=("id",)` 或 `keys=["id"]`，不要直接传入 `keys="id"`。
+`show_values` 仅接受布尔值 `True` 或 `False`，字符串 `"false"` 会被拒绝。
+行数和明细数上限须为整数，不能用布尔值。无效配置会在读取文件前被拒绝。
 
 ## 比较规则和边界
 
